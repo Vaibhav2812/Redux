@@ -1,4 +1,4 @@
-import { configureStore, createAction, createReducer } from '@reduxjs/toolkit';
+import { configureStore, createAction, createReducer, getDefaultMiddleware } from '@reduxjs/toolkit';
 
 const buttonClicked = createAction('BUTTON_CLICKED');
 const divVisible = createAction('DIV_VISIBLE');
@@ -20,8 +20,24 @@ const rootReducer = createReducer(initialState, {
 	}
 })
 
+
+//NANA
+function loggerMiddleware(store) {
+    // store.dispatch
+    // store.getState
+    return (next) => {
+        // next is function
+        return (action) => {
+            console.log(action);
+            return next(action);
+        }
+    }
+}
+
+// Add n middleware
 const store = configureStore({
-	reducer: rootReducer
+	reducer: rootReducer,
+	middleware: [...getDefaultMiddleware(), loggerMiddleware]
 });
 
 const button = window.document.getElementById('my-btn');
