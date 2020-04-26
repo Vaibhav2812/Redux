@@ -1,55 +1,62 @@
-import { configureStore, createAction, createReducer, getDefaultMiddleware } from '@reduxjs/toolkit';
+/*
+   async function inside action creator
+*/
 
-const buttonClicked = createAction('BUTTON_CLICKED');
-const divVisible = createAction('DIV_VISIBLE');
-const initialState = {
-	buttonClicked: 'no',
-	divVisible: 'no'
+import { createStore, combineReducers, applyMiddleware } from 'redux';
+import thunk from 'redux-thunk';
+const FETCH_ARTICLES = 'FETCH_ARTICLES'
+const articleState = {
+    fetching: '',
+    error: '',
+    articles: []
 }
 
-const rootReducer = createReducer(initialState, {
-	[buttonClicked]: (state, action) => {
-		console.log(action.payload);
-		state.buttonClicked = 'yes';
-		return state;
-	},
-	[divVisible]: (state, action) => {
-		console.log(action);
-		state.divVisible = 'yes';
-		return state;
-	}
-})
+function fetchArticles(payload) {
+    return function (dispatch) {
+        return fetch('https://jsonplaceholder.typicode.com/todos/').then((response) => {
+            dispatch({ type: 'IS_FETCHING' });
+            if (!response.ok) {
+                dispatch({ type: 'ERRORR_WHILE_FETCHING', payload: response.status });
+            }
+            return response.json()
+        }).then((json) => {
+            dispatch({ type: 'HAS_FETCHIED', payload: json });
+        })
+    }
+}
 
+function articleReducer(state = articleState, action) {
+    switch (action.type) {
+        case 'IS_FETCHING':
+            return { ...state, fetching: 'in_progress' };
+        case 'ERRORR_WHILE_FETCHING':
+            return { ...state, fetching: 'completed', error: action.payload };
+        case 'HAS_FETCHIED':
+            return { ...state, fetching: 'completed', articles: action.payload };
+        default:
+            return state;
+    }
+}
 
-//NANA
-function loggerMiddleware(store) {
-    // store.dispatch
-    // store.getState
-    return (next) => {
-        // next is function
-        return (action) => {
+function loggerMiddleware() {
+    return function (next) {
+        return function (action) {
             console.log(action);
             return next(action);
         }
     }
 }
+const middleware = [thunk, loggerMiddleware];
 
-// Add n middleware
-const store = configureStore({
-	reducer: rootReducer,
-	middleware: [...getDefaultMiddleware(), loggerMiddleware]
-});
-
-const button = window.document.getElementById('my-btn');
-
-button.addEventListener('click', (event) => {
-	store.dispatch(buttonClicked('this is payload'));
-	store.dispatch(divVisible());
+const rootReducer = combineReducers({
+    articles: articleReducer
+})
+const store = createStore(rootReducer, applyMiddleware(...middleware));
+const button = document.getElementById('my-btn');
+button.addEventListener('click', (ev) => {
+    store.dispatch(fetchArticles());
 })
 
 store.subscribe(() => {
-	if (store.getState().divVisible === 'yes') {
-		const div = document.getElementById('my-div');
-		div.style.display = 'block';
-	}
+    console.log('====>', store.getState().articles);
 })
